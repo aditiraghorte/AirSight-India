@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AirSight India</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  body { font-family: system-ui, sans-serif; background: #f5f7fa; color: #1f2933; margin: 0; padding: 24px; }
+  .wrap { max-width: 820px; margin: 0 auto; }
+  h1 { margin: 0 0 4px; }
+  .sub { color: #52606d; margin-bottom: 20px; }
+  .controls { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  select, input, button { font-size: 16px; padding: 8px 12px; border: 1px solid #cbd2d9; border-radius: 8px; }
+  button { background: #1f2933; color: #fff; border: none; cursor: pointer; }
+  .card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .big { font-size: 56px; font-weight: 700; line-height: 1; }
+  .badge { display: inline-block; padding: 4px 14px; border-radius: 20px; color: #fff; font-weight: 600; margin-left: 12px; }
+  .meta { color: #52606d; margin-top: 8px; }
+  .warn { color: #b44d12; margin-top: 8px; }
+  footer { color: #7b8794; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>AirSight India</h1>
+  <div class="sub">Next-day AQI forecasts for Indian cities, based on 2015 to 2020 data</div>
+
+  <div class="controls">
+    <select id="city"></select>
+    <input type="date" id="date">
+    <button id="go">Forecast</button>
+  </div>
+
+  <div class="card" id="result" style="display:none">
+    <div><span class="big" id="aqi"></span><span class="badge" id="cat"></span></div>
+    <div class="meta" id="meta"></div>
+    <div class="warn" id="warn"></div>
+  </div>
+
+  <div class="card"><canvas id="chart" height="110"></canvas></div>
+  <footer>Forecasts use historical data, not live AQI. Data ends 1 July 2020.</footer>
+</div>
+
+<script>
+const COLORS = {"Good":"#2e9e4f","Satisfactory":"#8cc63f","Moderate":"#d9a406",
+                "Poor":"#f28c28","Very Poor":"#e04b3a","Severe":"#8b1a2b"};
+let cities = {}, chart;
+const citySel = document.getElementById("city");
+const dateIn = document.getElementById("date");
+
+async function init() {
+  cities = await (await fetch("/cities")).json();
+  Object.keys(cities).sort().forEach(c => citySel.add(new Option(c, c)));
+  citySel.value = "Delhi" in cities ? "Delhi" : citySel.options[0].value;
+  setDateRange(); run();
+}
+function setDateRange() {
+  const r = cities[citySel.value];
+  dateIn.min = r.from; dateIn.max = r.to; dateIn.value = r.to;
+}
+async function run() {
+  const city = citySel.value, date = dateIn.value;
+  const p = await (await fetch(`/predict?city=${encodeURIComponent(city)}&date=${date}`)).json();
+  if (p.error) { alert(p.error); return; }
+  const t = await (await fetch(`/trend?city=${encodeURIComponent(city)}&end=${date}&days=90`)).json();
+
+  document.getElementById("result").style.display = "block";
+  document.getElementById("aqi").textContent = p.predicted_aqi;
+  const badge = document.getElementById("cat");
+  badge.textContent = p.category; badge.style.background = COLORS[p.category];
+  document.getElementById("meta").textContent =
+    `Forecast for ${p.forecast_for} in ${p.city}, using data up to ${p.as_of} (last observed AQI: ${p.last_observed_aqi ?? "n/a"})`;
+  document.getElementById("warn").textContent = p.warning || "";
+
+  const labels = [...t.dates, p.forecast_for];
+  const actual = [...t.aqi, null];
+  const lastIdx = t.aqi.length - 1;
+  const fc = new Array(labels.length).fill(null);
+  fc[lastIdx] = t.aqi[lastIdx]; fc[lastIdx + 1] = p.predicted_aqi;
+
+  if (chart) chart.destroy();
+  chart = new Chart(document.getElementById("chart"), {
+    type: "line",
+    data: { labels, datasets: [
+      { label: "Actual AQI", data: actual, borderColor: "#1f2933", pointRadius: 0, tension: 0.2 },
+      { label: "Forecast", data: fc, borderColor: COLORS[p.category], borderDash: [6, 4],
+        pointRadius: 5, pointBackgroundColor: COLORS[p.category] } ]},
+    options: { plugins: { title: { display: true, text: `${p.city}: last 90 days and forecast` } },
+               scales: { x: { ticks: { maxTicksLimit: 8 } } } }
+  });
+}
+citySel.addEventListener("change", () => { setDateRange(); run(); });
+document.getElementById("go").addEventListener("click", run);
+init();
+</script>
+</body>
+</html>
