@@ -1,8 +1,8 @@
 # AirSight India
 
-Next-day air quality (AQI) forecasting for Indian cities, with an interactive Flask dashboard. The project covers data cleaning, exploratory analysis, leakage-safe feature engineering, time-based validation against a persistence baseline, and a deployed-style web app.
+Next-day air quality (AQI) forecasting for Indian cities, with an interactive Flask dashboard. The project covers data cleaning, exploratory analysis, leakage-safe feature engineering, time-based validation against a persistence baseline, and a deployed-style with local web app.
 
-**Live demo / video:** _add link here_
+**Demo video:** https://youtu.be/4X6Qa9Fq_vs
 
 ## Screenshots
 
@@ -53,7 +53,7 @@ Gradient Boosting lowers MAE by about 17% and RMSE by about 22% versus persisten
 
 The gain over persistence is 20.7% in 2019 and about 17% in 2020, so the improvement holds across two different test periods. Absolute errors are higher in 2019 because that window covers a full year including winter pollution peaks.
 
-**Unseen cities.** Three of the 20 cities in the 2019 test set (Chandigarh, Coimbatore, Guwahati) have no data before 2019 and were never seen in training. The model still beat persistence on them (MAE 19.04 vs 25.91, a 26.5% gain, compared with 20.1% for the 17 seen cities). This fits the model relying mainly on recent pollutant and AQI values rather than city identity. With only three cities and 594 rows, this is indicative rather than conclusive.
+**Unseen cities.** Three of the 20 cities in the 2019 test set (Chandigarh, Coimbatore, Guwahati) have no data before 2019 and were never seen in training. The model still beat persistence on them (MAE 19.04 vs 25.91, a 26.5% gain, compared with 20.1% for the 17 seen cities). This fits the model relying mainly on recent pollutant and AQI values rather than city identity. With only three cities and 594 rows, this is indicative rather than conclusive.City averages exclude AQI values above 500, so they slightly understate the most polluted cities.
 
 **Classification: next-day AQI category (same 2020 test window)**
 
